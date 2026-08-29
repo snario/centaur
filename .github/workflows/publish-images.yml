@@ -19,12 +19,18 @@ on:
       - .agents/skills/**
   pull_request:
   workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Existing run whose completed digest artifacts should be tagged
+        required: false
+        type: string
 
 concurrency:
   group: publish-images-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
+  actions: read
   contents: read
   id-token: write
   packages: write
@@ -45,7 +51,7 @@ jobs:
   # dispatch builds stay amd64-only to keep iteration fast. Fork PRs skip both
   # jobs so untrusted changes do not run on the hosted image builders.
   build:
-    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork }}
+    if: ${{ inputs.source_run_id == '' && (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork) }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -166,7 +172,7 @@ jobs:
   merge:
     runs-on: ubuntu-latest
     needs: build
-    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork }}
+    if: ${{ always() && (inputs.source_run_id != '' || github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork) }}
     strategy:
       fail-fast: false
       matrix:
@@ -181,6 +187,8 @@ jobs:
           pattern: digests-${{ matrix.image }}-*
           path: ${{ runner.temp }}/digests
           merge-multiple: true
+          run-id: ${{ inputs.source_run_id || github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
@@ -203,6 +211,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=main,enable={{is_default_branch}}
             type=raw,value=edge,enable={{is_default_branch}}
+            type=raw,value=sha-e2a08ab,enable=${{ inputs.source_run_id != '' }}
             type=sha,prefix=main-sha-,enable={{is_default_branch}}
             type=semver,pattern={{raw}}
             type=ref,event=pr
