@@ -56,14 +56,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [api-rs, slackbotv2]
+        service: [slackbotv2]
         platform: ${{ github.event_name == 'push' && fromJSON('["linux/amd64", "linux/arm64"]') || fromJSON('["linux/amd64"]') }}
         include:
-          - service: api-rs
-            image: centaur-api-rs
-            context: .
-            dockerfile: services/api-rs/Dockerfile
-            target: ""
           - service: slackbotv2
             image: centaur-slackbotv2
             context: .
@@ -142,7 +137,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: centaur-api-rs
           - image: centaur-slackbotv2
 
     steps:
