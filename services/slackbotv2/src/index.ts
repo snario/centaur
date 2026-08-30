@@ -2550,7 +2550,8 @@ async function* slackSafeChatSdkStream(
 type SlackStreamTaskDisplayMode = NonNullable<SlackbotV2Options['streamTaskDisplayMode']>
 
 function slackStreamTaskDisplayMode(options: SlackbotV2Options): SlackStreamTaskDisplayMode {
-  return options.streamTaskDisplayMode ?? (options.activitySummaryStatusEnabled ? 'none' : 'plan')
+  return options.streamTaskDisplayMode ??
+    (options.assistantProgressEnabled === false || options.activitySummaryStatusEnabled ? 'none' : 'plan')
 }
 
 async function* slackVisibleChatSdkStream(
@@ -3358,6 +3359,7 @@ async function setAssistantStatus(
   options?: SlackbotV2Options,
   trace?: SlackbotV2Trace
 ): Promise<boolean> {
+  if (options?.assistantProgressEnabled === false) return false
   const startedAtMs = nowMs()
   const normalizedStatus = normalizeAssistantStatus(status)
   const target = slackAssistantTarget(thread)
@@ -3434,6 +3436,7 @@ async function setAssistantTitle(
   options?: SlackbotV2Options,
   trace?: SlackbotV2Trace
 ): Promise<void> {
+  if (options?.assistantProgressEnabled === false) return
   const normalized = title?.trim()
   if (!normalized) return
   const startedAtMs = nowMs()

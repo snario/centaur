@@ -4122,6 +4122,76 @@ describe('slackbotv2', () => {
     expect(text).not.toContain('Thinking')
   })
 
+  it('delivers the final answer without surfacing assistant progress when disabled', async () => {
+    bot = createProductionDefaultTestBot({
+      activitySummaryStatusEnabled: false,
+      assistantProgressEnabled: false
+    })
+    codexApi.autoRespond = false
+
+    const parent = await postUserMessage('Context before silent progress.')
+    const mention = await postUserMessage(`<@${BOT_USER_ID}> work silently`, parent.ts)
+    const waits: Promise<unknown>[] = []
+    const response = await bot.app.request(
+      '/api/webhooks/slack',
+      signedSlackEvent({
+        event_id: 'Ev-slackbotv2-silent-progress',
+        event: {
+          type: 'app_mention',
+          user: USER_ID,
+          channel: CHANNEL_ID,
+          team: TEAM_ID,
+          ts: mention.ts,
+          thread_ts: parent.ts,
+          text: `<@${BOT_USER_ID}> work silently`
+        }
+      }),
+      {},
+      waitUntilContext(waits)
+    )
+
+    expect(response.status).toBe(200)
+    await waitFor(() => codexApi.executes.length === 1)
+    await waitFor(() => codexApi.eventRequests.length === 1)
+
+    const key = threadKey(parent.ts)
+    codexApi.emitSessionEvent(key, 'session.activity_summary', {
+      execution_id: 'exe-silent-progress',
+      summary: 'Inspecting the event stream.'
+    })
+    codexApi.emitOutputLine(
+      key,
+      JSON.stringify({
+        type: 'item.started',
+        item: {
+          id: 'cmd-silent-progress',
+          type: 'commandExecution',
+          command: 'rg event stream',
+          status: 'inProgress'
+        }
+      })
+    )
+    codexApi.emitOutputLine(
+      key,
+      JSON.stringify({
+        type: 'turn.done',
+        result: 'Silent progress done.'
+      })
+    )
+
+    await Promise.all(waits)
+    expect(slackApi.calls.filter(call => call.method === 'assistant.threads.setStatus')).toHaveLength(0)
+    expect(slackApi.calls.filter(call => call.method === 'assistant.threads.setTitle')).toHaveLength(0)
+    const transcripts = slackStreamTranscripts(slackApi.calls)
+    expect(transcripts).toHaveLength(1)
+    expect(transcripts[0]!.start.body.task_display_mode).toBeUndefined()
+    expect(transcripts[0]!.chunks.every(chunk => chunk.type === 'markdown_text')).toBe(true)
+    const text = await threadText(parent.ts)
+    expect(text).toContain('Silent progress done.')
+    expect(text).not.toContain('Inspecting the event stream')
+    expect(text).not.toContain('Command execution')
+  })
+
   it('recovers unfinished render obligations from Chat SDK state on startup', async () => {
     const sharedState = createMemoryState()
     await sharedState.connect()

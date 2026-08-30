@@ -129,6 +129,11 @@ export type SlackbotV2Options = {
   allowedExternalTeamIds?: readonly string[]
   apiKey?: string
   apiUrl: string
+  /**
+   * Whether to surface in-progress titles and statuses in Slack. Disabling this
+   * keeps final-answer delivery intact while making an active turn silent.
+   */
+  assistantProgressEnabled?: boolean
   assistantStatus?: string
   /**
    * When enabled, session.activity_summary events update Slack's assistant
