@@ -475,6 +475,9 @@ slackbotv2:
     pullPolicy: Always
   userName: centaur
   assistantStatus: ""
+  # Show temporary Slack assistant titles and statuses while a turn is running.
+  # Set false to deliver only the final answer.
+  assistantProgressEnabled: true
   # Join newly-created public channels after subscribed channel_created events.
   # Requires the Slack app to grant channels:read and channels:join.
   autoJoinCreatedChannels: false

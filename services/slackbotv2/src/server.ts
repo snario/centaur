@@ -37,6 +37,7 @@ const consoleLogger = {
 const options: SlackbotV2Options = {
   apiUrl,
   apiKey: optionalEnv('SLACKBOT_API_KEY'),
+  assistantProgressEnabled: booleanEnv('SLACKBOTV2_ASSISTANT_PROGRESS_ENABLED', true),
   assistantStatus: optionalEnv('SLACKBOTV2_ASSISTANT_STATUS'),
   activitySummaryStatusEnabled: booleanEnv('SLACKBOTV2_ACTIVITY_SUMMARY_STATUS_ENABLED', false),
   autoJoinCreatedChannels: booleanEnv('SLACKBOTV2_AUTO_JOIN_CREATED_CHANNELS', false),
@@ -94,6 +95,7 @@ console.log(
     event: 'slackbotv2_started',
     service: 'slackbotv2',
     activity_summary_status_enabled: options.activitySummaryStatusEnabled,
+    assistant_progress_enabled: options.assistantProgressEnabled,
     auto_join_created_channels_enabled: options.autoJoinCreatedChannels,
     message_overrides_strategy: messageOverridesStrategyMode,
     message_overrides_strategy_enabled:
